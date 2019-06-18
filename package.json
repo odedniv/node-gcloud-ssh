@@ -1,0 +1,33 @@
+{
+  "name": "gcloud-ssh",
+  "version": "1.0.0",
+  "description": "Create secure IAM-controlled SSH connections between Google Cloud resources and VM instances!",
+  "keywords": [
+    "google",
+    "google cloud",
+    "google cloud platform",
+    "cloud",
+    "iam",
+    "ssh",
+    "google os login",
+    "os login"
+  ],
+  "main": "index.js",
+  "author": "Oded Niv",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/odedniv/node-gcloud-ssh.git"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/odedniv/node-gcloud-ssh/issues"
+  },
+  "homepage": "https://github.com/odedniv/node-gcloud-ssh#readme",
+  "dependencies": {
+    "@google-cloud/compute": "^1.0.1",
+    "@google-cloud/os-login": "^1.0.0",
+    "async-lock": "^1.2.0",
+    "ssh2": "^0.8.4",
+    "sshpk": "^1.16.1"
+  }
+}
