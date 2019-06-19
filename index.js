@@ -7,6 +7,7 @@ const net = require('net');
 const sshpk = require('sshpk');
 const crypto = require('crypto');
 const AsyncLock = require('async-lock');
+const retry = require('async-retry');
 
 // SSH keys APIs in Google are not thread-safe, attempting to not modify them in parallel (only helps when running in the same process)
 const lock = new AsyncLock();
@@ -44,24 +45,36 @@ class GcloudSsh {
   }
 
   async promise() {
-    let oldOtherSshFingerprints = await this.getOtherFingerprints();
+    let oldSshFingerprints = await this.getSshFingerprints();
     while (!this.ended) {
       await this.osLogin();
       try {
-        await this.ssh();
+        // when adding one key after another, the second key added may take time to apply
+        await retry(async bail => {
+          try {
+            await this.ssh();
+          } catch (err) {
+            if (!err || err.message !== 'All configured authentication methods failed') {
+              // didn't fail due to permissions
+              bail(err);
+              return;
+            }
+            throw err;
+          }
+        }, { retries: 2 });
       } catch (err) {
         // retrying to process of OS login & SSH in case of a race condition with other processes modifying SSH keys
         if (!err || err.message !== 'All configured authentication methods failed') {
           // didn't fail due to permissions
           throw err;
         }
-        await new Promise(resolve => setTimeout(resolve, 1000)); // making sure we get an updated list of fingerprints?
-        let newOtherSshFingerprints = await this.getOtherFingerprints();
-        if (JSON.stringify(newOtherSshFingerprints) === JSON.stringify(oldOtherSshFingerprints)) {
+        let newSshFingerprints = await this.getSshFingerprints();
+        let newOtherSshFingerprints = newSshFingerprints.filter(fingerprint => fingerprint !== this.fingerprint);
+        if (JSON.stringify(newOtherSshFingerprints) === JSON.stringify(oldSshFingerprints)) {
           // there were no changes, no race condition
           throw err;
         }
-        oldOtherSshFingerprints = newOtherSshFingerprints;
+        oldSshFingerprints = newOtherSshFingerprints;
         continue; // retry
       }
       break;
@@ -81,9 +94,9 @@ class GcloudSsh {
     this.loginProfile = response[0].loginProfile;
   }
 
-  async getOtherFingerprints() {
+  async getSshFingerprints() {
     let response = await this.osLoginServiceClient.getLoginProfile({ name: this.osLoginServiceClient.userPath(await this.user) });
-    return Object.keys(response[0].sshPublicKeys).filter(fingerprint => fingerprint != this.fingerprint);
+    return Object.keys(response[0].sshPublicKeys);
   }
 
   ssh() {

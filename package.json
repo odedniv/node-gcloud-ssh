@@ -1,6 +1,6 @@
 {
   "name": "gcloud-ssh",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Create secure IAM-controlled SSH connections between Google Cloud resources and VM instances!",
   "keywords": [
     "google",
@@ -27,6 +27,7 @@
     "@google-cloud/compute": "^1.0.1",
     "@google-cloud/os-login": "^1.0.0",
     "async-lock": "^1.2.0",
+    "async-retry": "^1.2.3",
     "ssh2": "^0.8.4",
     "sshpk": "^1.16.1"
   }
